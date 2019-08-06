@@ -110,7 +110,7 @@
 
     #checking if the sequences are actually paired
     #if time.column is present
-    if(!is.null(time.column) & same.time == TRUE){
+    if(!is.null(time.column) & !is.null(same.time)){
 
       #counts number of time each "time" value appears
       temp.table.time <- table(sequences[, time.column])
@@ -146,7 +146,7 @@
 
     #COMPUTATION OF PAIRWISE DISTANCES BETWEEN SAMPLES
     #generate combinations of groups for subsetting
-    combinations <- utils::combn(unique(sequences[, grouping.column]), m=2)
+    combinations <- t(arrangements::permutations(unique(sequences[, grouping.column]), k = 2))
 
     #number of combinations
     n.iterations <- dim(combinations)[2]

@@ -211,7 +211,6 @@ prepareSequences=function(sequence.A = NULL,
 
   }
 
-
   #HANDLING NA
   #############################
   sequences <- handleNA(
@@ -322,6 +321,18 @@ prepareSequences=function(sequence.A = NULL,
 
     }
 
+  }
+
+  #Removing NaN columns (a possibility when using Hellinger transformation)
+  for(col.name in colnames(sequences)){
+    if(sum(is.nan(sequences[, col.name])) == nrow(sequences)){
+      sequences[, col.name] <- NULL
+    }
+  }
+
+  #grouping column to character
+  if(is.character(sequences[, grouping.column]) == FALSE){
+    sequences[, grouping.column] <- as.character(sequences[, grouping.column])
   }
 
   return(sequences)

@@ -53,15 +53,22 @@
 #'  parallel.execution = FALSE
 #'  )
 #'
+#'AB.least.cost.path <- leastCostPath(
+#'  least.cost.matrix = AB.least.cost.matrix,
+#'  distance.matrix = AB.distance.matrix,
+#'  parallel.execution = FALSE
+#'  )
+#'
 #'#extracting least cost
 #'AB.least.cost <- leastCost(
-#'  least.cost.matrix = AB.least.cost.matrix,
+#'  least.cost.path = AB.least.cost.path,
 #'  parallel.execution = FALSE
 #'  )
 #'
 #'#autosum
 #'AB.autosum <- autoSum(
 #'  sequences = AB.sequences,
+#'  least.cost.path = AB.least.cost.path,
 #'  grouping.column = "id",
 #'  parallel.execution = FALSE
 #'  )
@@ -116,23 +123,17 @@ psi <- function(least.cost = NULL,
   #parallelized loop
   psi.values <- foreach::foreach(i = 1:n.iterations) %dopar% {
 
-    #cost of the best solution
-    optimal.cost <- least.cost[[i]] * 2
-
     #getting names of the sequences
     sequence.names = unlist(strsplit(names(least.cost)[i], split='|', fixed=TRUE))
 
+    #double the cost of the best solution
+    optimal.cost <- least.cost[[i]] * 2
+
     #computing autosum of both sequences
-    sum.autosum <- autosum[[sequence.names[1]]] + autosum[[sequence.names[2]]]
+    sum.autosum <- autosum[[names(least.cost)[i]]]
 
     #computing psi
-    #if optimal.cost equals 0, they are the same sequence, and psi is zero
-    if(optimal.cost <= 0){
-      psi.value <- 0
-      } else {
-        psi.value <- abs((optimal.cost - sum.autosum) / sum.autosum)
-        if(is.na(psi.value)){print(i)}
-      }
+    psi.value <- ((optimal.cost - sum.autosum) / sum.autosum)
 
     return(psi.value)
 

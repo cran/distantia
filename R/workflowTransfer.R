@@ -136,9 +136,14 @@ workflowTransfer <- function(
     mode <- "direct"
   }
 
+  #separating transfer.from and transfer.to
+  from.df <- sequences[sequences[, grouping.column] == transfer.from, ]
+  to.df <- sequences[sequences[, grouping.column] == transfer.to, ]
+
+
   #computation of distance matrix
   distance.matrix <- distanceMatrix(
-    sequences = sequences,
+    sequences = rbind(from.df, to.df),
     grouping.column = grouping.column,
     time.column = time.column,
     exclude.columns = exclude.columns,
@@ -180,10 +185,6 @@ workflowTransfer <- function(
 
     #flip least cost path
     least.cost.path.df <- least.cost.path.df[nrow(least.cost.path.df):1, ]
-
-    #separating dataframes internally
-    from.df <- sequences[sequences[, grouping.column] == transfer.from, ]
-    to.df <- sequences[sequences[, grouping.column] == transfer.to, ]
 
     #iterating throug cases in to.df
     for(i in 1:nrow(to.df)){
@@ -238,11 +239,6 @@ workflowTransfer <- function(
     #flip least cost path
     least.cost.path.df <- least.cost.path.df[nrow(least.cost.path.df):1, ]
 
-    #separating dataframes internally
-    from.df <- sequences[sequences[, grouping.column] == transfer.from, ]
-    to.df <- sequences[sequences[, grouping.column] == transfer.to, ]
-
-
     #iterating throug cases in to.df
     ################################
     ################################
@@ -271,7 +267,6 @@ workflowTransfer <- function(
         #getting indices of samples i and j
         i <- selected.sample.i[, transfer.from]
         j <- selected.sample.j[, transfer.from]
-
 
       }#end of 1.
 
@@ -318,7 +313,6 @@ workflowTransfer <- function(
       }# end of 2.
 
       #computing variables needed to interpolate the attribute
-
       #ages
       Ati <- from.df[i, transfer.what]
       Atj <- from.df[j, transfer.what]
@@ -338,32 +332,24 @@ workflowTransfer <- function(
       #tries to increase j
       #if still doesn't work, adds a NA
       if(k > 1){
-        if(!is.na(to.df[k - 1, transfer.what])){
-          if(Btk < to.df[k - 1, transfer.what]){
 
-            #increases window
-            j <- j + 1
-
-            #computes needed variables again
-            Atj <- from.df[j, transfer.what]
-            DBkAj <- distance.matrix[[1]][j, k]
-            wj <- DBkAj / (DBkAi + DBkAj)
-
-            #interpolation
-            Btk <- wi * Ati + wj * Atj
-
-            #adds NA if still wrong
-            if(Btk < to.df[k - 1, transfer.what]){
-              Btk <- NA
-            }
-          }
+        #finding the previous non-NA age
+        n <- 1
+        while(is.na(to.df[k - n, transfer.what])){
+          n <- n + 1
         }
-      }
+
+        #if the interpolated age is lower than the previous one
+        #set it to NA
+        if(Btk < to.df[k - n, transfer.what]){
+              Btk <- NA
+              }
+        }
 
       #adding it
       to.df[k, transfer.what] <- Btk
 
-    }#end of loop
+    }#end of k loop
 
     return(to.df)
 

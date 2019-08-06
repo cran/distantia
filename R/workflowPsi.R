@@ -28,6 +28,7 @@
 #'   format = "dataframe",
 #'   paired.samples = FALSE,
 #'   same.time = FALSE,
+#'   ignore.blocks = FALSE,
 #'   parallel.execution = TRUE
 #'   )
 #'
@@ -40,6 +41,7 @@
 #' @param format string, type of output. One of: "data.frame", "matrix". If \code{NULL} or empty, a list is returned.
 #' @param paired.samples boolean, if \code{TRUE}, the sequences are assumed to be aligned, and distances are computed for paired-samples only (no distance matrix required). Default value is \code{FALSE}.
 #' @param same.time boolean. If \code{TRUE}, samples in the sequences to compare will be tested to check if they have the same time/age/depth according to \code{time.column}. This argument is only useful when the user needs to compare two sequences taken at different sites but same time frames.
+#' @param ignore.blocks boolean. If \code{TRUE}, the function \code{\link{leastCostPathNoBlocks}} analyzes the least-cost path of the best solution, and removes blocks (straight-orthogonal sections of the least-cost path), which happen in highly dissimilar sections of the sequences, and inflate output psi values.
 #' @param parallel.execution boolean, if \code{TRUE} (default), execution is parallelized, and serialized if \code{FALSE}.
 #'
 #' @return A list, matrix, or dataframe, with sequence names and psi values.
@@ -66,7 +68,6 @@
 #'  exclude.columns = NULL,
 #'  method = "manhattan",
 #'  diagonal = FALSE,
-#'  format = "dataframe",
 #'  parallel.execution = FALSE
 #'  )
 #'
@@ -84,19 +85,11 @@ workflowPsi <- function(sequences = NULL,
                         format = "dataframe",
                         paired.samples = FALSE,
                         same.time = FALSE,
+                        ignore.blocks = FALSE,
                         parallel.execution = TRUE){
 
-  #autosum
-  autosum.sequences <- autoSum(
-    sequences = sequences,
-    grouping.column = grouping.column,
-    time.column = time.column,
-    exclude.columns = exclude.columns,
-    method = method,
-    parallel.execution = parallel.execution
-  )
 
-  #if samples are not paired
+  #SAMPLES ARE NOT PAIRED: ELASTIC METHOD
   if(paired.samples == FALSE){
 
     #computing distance matrix
@@ -116,19 +109,68 @@ workflowPsi <- function(sequences = NULL,
       parallel.execution = parallel.execution
     )
 
-    #getting least cost
-    least.cost <- leastCost(
+    #computing least cost path
+    least.cost.path <- leastCostPath(
+      distance.matrix = distance.matrix,
       least.cost.matrix = least.cost.matrix,
+      diagonal = diagonal,
       parallel.execution = parallel.execution
     )
+
+    #BLOCKS ARE NOT IGNORED
+    if(ignore.blocks == TRUE){
+
+      #BLOCKS ARE IGNORED
+      #computing least cost path
+      least.cost.path <- leastCostPathNoBlocks(
+        least.cost.path = least.cost.path,
+        parallel.execution = parallel.execution
+      )
+
+    }
+
+    #getting least cost ignoring blocks
+    least.cost <- leastCost(
+    least.cost.path = least.cost.path,
+    parallel.execution = parallel.execution
+    )
+
+    #autosum
+    autosum.sequences <- autoSum(
+      sequences = sequences,
+      least.cost.path = least.cost.path,
+      grouping.column = grouping.column,
+      time.column = time.column,
+      exclude.columns = exclude.columns,
+      method = method,
+      parallel.execution = parallel.execution
+    )
+
+    #computing psi
+    psi.value <- psi(
+      least.cost = least.cost,
+      autosum = autosum.sequences,
+      parallel.execution = parallel.execution
+    )
+
+    #shifting psi by 1
+    if(diagonal == TRUE){
+      psi.value <- lapply(X = psi.value, FUN = function(x){x + 1})
+    }
+
+    # #shifting to 0 when orthogonal ignoring blocks
+    # if(diagonal == FALSE & ignore.blocks == TRUE){
+    #   psi.value <- lapply(X = psi.value, FUN = function(x){if(x < 0) x <- 0})
+    # }
 
   } #end of paired.samples == FALSE
 
 
-  #if samples are paired
+  #SAMPLES ARE PAIRED: STEP-LOCK METHOD
   if(paired.samples == TRUE){
 
-    least.cost.equivalent <- distancePairedSamples(
+    #computing least cost
+    least.cost <- distancePairedSamples(
       sequences = sequences,
       grouping.column = grouping.column,
       time.column = time.column,
@@ -139,16 +181,29 @@ workflowPsi <- function(sequences = NULL,
       parallel.execution = parallel.execution
     )
 
-    least.cost <- least.cost.equivalent
+    #autosum
+    autosum.sequences <- autoSum(
+      sequences = sequences,
+      least.cost.path = least.cost,
+      grouping.column = grouping.column,
+      time.column = time.column,
+      exclude.columns = exclude.columns,
+      method = method,
+      parallel.execution = parallel.execution
+    )
+
+    #computing psi
+    psi.value <- psi(
+      least.cost = least.cost,
+      autosum = autosum.sequences,
+      parallel.execution = parallel.execution
+    )
+
+    #shifting psi by 1
+    psi.value <- lapply(X = psi.value, FUN = function(x){x + 1})
 
   } #end of paired.samples == TRUE
 
-  #computing psi
-  psi.value <- psi(
-    least.cost = least.cost,
-    autosum = autosum.sequences,
-    parallel.execution = parallel.execution
-    )
 
   #formating psi
   if(format != "list"){

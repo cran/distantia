@@ -1,7 +1,7 @@
 Package: distantia
 Type: Package
 Title: Assessing Dissimilarity Between Multivariate Time Series
-Version: 1.0.1
+Version: 1.0.2
 Author: Blas M. Benito
 URL: https://blasbenito.github.io/distantia/
 Maintainer: Blas M. Benito <blasbenito@gmail.com>
@@ -15,6 +15,6 @@ Imports: plyr, grDevices, foreach, parallel, doParallel, fields,
         viridis, RColorBrewer, data.table, iterators, arrangements
 Suggests: devtools, formatR, kableExtra, magrittr, knitr, rmarkdown
 NeedsCompilation: no
-Packaged: 2019-08-06 11:25:07 UTC; blas
+Packaged: 2019-10-28 19:27:28 UTC; blas
 Repository: CRAN
-Date/Publication: 2019-08-06 11:40:02 UTC
+Date/Publication: 2019-10-28 23:40:11 UTC

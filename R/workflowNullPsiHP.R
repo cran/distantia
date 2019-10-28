@@ -1,17 +1,12 @@
-#' Computes the dissimilarity measure \emph{psi} on restricted permutations of two or more sequences.
+#' Computes the dissimilarity measure \emph{psi} on restricted permutations of two or more sequences. High performance version with limited options
 #'
 #' @description The function first computes psi on the observed sequences, and then computes it on permutations of the input sequences by the \code{repetitions} argument. The data is randomized as follows: within each column, each data-point can be: 1) left as is; 2) replaced by the previous case; 3) replaced by the next case. The action applied to each data-point is selected randomly, and independently from the actions applied to other data-points. This type of randomization generates versions of the dataset that have the same general structure as the original one, but small local and independent changes only ocurring within the immediate neighborhood (one row up or down) of each case in the table. The method should generate very conservative random values of \code{psi}.
 #'
-#' @usage workflowNullPsi(
+#' @usage workflowNullPsiHP(
 #'   sequences = NULL,
 #'   grouping.column = NULL,
 #'   time.column = NULL,
 #'   exclude.columns = NULL,
-#'   method = "manhattan",
-#'   diagonal = FALSE,
-#'   paired.samples = FALSE,
-#'   same.time = FALSE,
-#'   ignore.blocks = FALSE,
 #'   parallel.execution = TRUE,
 #'   repetitions = 9
 #'   )
@@ -20,11 +15,6 @@
 #' @param grouping.column character string, name of the column in \code{sequences} to be used to identify separates sequences within the file.
 #' @param time.column character string, name of the column with time/depth/rank data.
 #' @param exclude.columns character string or character vector with column names in \code{sequences} to be excluded from the analysis.
-#' @param method character string naming a distance metric. Valid entries are: "manhattan", "euclidean", "chi", and "hellinger". Invalid entries will throw an error.
-#' @param diagonal boolean, if \code{TRUE}, diagonals are included in the computation of the least cost path. Defaults to \code{FALSE}, as the original algorithm did not include diagonals in the computation of the least cost path. If \code{paired.samples} is \code{TRUE}, then \code{diagonal} is irrelevant.
-#' @param paired.samples boolean, if \code{TRUE}, the sequences are assumed to be aligned, and distances are computed for paired-samples only (no distance matrix required). Default value is \code{FALSE}.
-#' @param same.time boolean. If \code{TRUE}, samples in the sequences to compare will be tested to check if they have the same time/age/depth according to \code{time.column}. This argument is only useful when the user needs to compare two sequences taken at different sites but same time frames.
-#' @param ignore.blocks boolean. If \code{TRUE}, the function \code{\link{leastCostPathNoBlocks}} analyzes the least-cost path of the best solution, and removes blocks (straight-orthogonal sections of the least-cost path), which happen in highly dissimilar sections of the sequences, and inflate output psi values.
 #' @param parallel.execution boolean, if \code{TRUE} (default), execution is parallelized, and serialized if \code{FALSE}.
 #' @param repetitions integer, number of null psi values to obtain.
 #'
@@ -50,10 +40,9 @@
 #'   )
 #'
 #'#execute workflow to compute psi
-#'MIS.null.psi <- workflowNullPsi(
+#'MIS.null.psi <- workflowNullPsiHP(
 #'  sequences = MIS.sequences[MIS.sequences$MIS %in% c("MIS-1", "MIS-2"), ],
 #'  grouping.column = "MIS",
-#'  method = "manhattan",
 #'  repetitions = 3,
 #'  parallel.execution = FALSE
 #'  )
@@ -62,15 +51,10 @@
 #'}
 #'
 #' @export
-workflowNullPsi <- function(sequences = NULL,
+workflowNullPsiHP <- function(sequences = NULL,
                         grouping.column = NULL,
                         time.column = NULL,
                         exclude.columns = NULL,
-                        method = "manhattan",
-                        diagonal = FALSE,
-                        paired.samples = FALSE,
-                        same.time = FALSE,
-                        ignore.blocks = FALSE,
                         parallel.execution = TRUE,
                         repetitions = 9
                         ){
@@ -78,16 +62,11 @@ workflowNullPsi <- function(sequences = NULL,
   #COMPUTING PSI ON OBSERVED SEQUENCES
   ####################################
 
-  psi.real <- workflowPsi(
+  psi.real <- workflowPsiHP(
     sequences = sequences,
     grouping.column = grouping.column,
     time.column = time.column,
     exclude.columns = exclude.columns,
-    method = method,
-    diagonal = diagonal,
-    paired.samples = paired.samples,
-    same.time = same.time,
-    format = "dataframe",
     parallel.execution = parallel.execution
   )
 
@@ -127,11 +106,8 @@ workflowNullPsi <- function(sequences = NULL,
                                           'grouping.column',
                                           'time.column',
                                           'exclude.columns',
-                                          'method',
-                                          'diagonal',
-                                          'paired.samples',
-                                          'same.time',
-                                          'workflowPsi'
+                                          'workflowPsiHP',
+                                          'formatPsi'
                                           ),
                               envir = environment()
       )
@@ -173,18 +149,19 @@ workflowNullPsi <- function(sequences = NULL,
       colnames(sequences.randomized)[1] <- grouping.column
 
       #computes psi on permutated sequences
-      psi.random.i <- workflowPsi(
+      psi.random.i <- workflowPsiHP(
         sequences = sequences.randomized,
         grouping.column = grouping.column,
         time.column = time.column,
         exclude.columns = exclude.columns,
-        method = method,
-        diagonal = diagonal,
-        paired.samples = paired.samples,
-        same.time = same.time,
-        format = "list",
         parallel.execution = FALSE
       )
+
+      #to list
+      psi.random.i <- formatPsi(
+        psi.values = psi.random.i,
+        to = "list"
+        )
 
       return(psi.random.i)
 

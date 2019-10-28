@@ -28,7 +28,7 @@
 #' data("sequencesMIS")
 #' #prepare sequences
 #' MIS.sequences <- prepareSequences(
-#'   sequences = sequencesMIS,
+#'   sequences = sequencesMIS[sequencesMIS$MIS %in% c("MIS-1", "MIS-2"), ],
 #'   grouping.column = "MIS",
 #'   if.empty.cases = "zero",
 #'   transformation = "hellinger"
@@ -91,7 +91,13 @@ workflowPsiHP <- function(sequences = NULL,
     `%dopar%` <- foreach::`%dopar%`
     n.cores <- parallel::detectCores() - 1
     if(n.iterations < n.cores){n.cores <- n.iterations}
-    my.cluster <- parallel::makeCluster(n.cores, type="FORK")
+
+    if(.Platform$OS.type == "windows"){
+      my.cluster <- parallel::makeCluster(n.cores, type="PSOCK")
+    } else {
+      my.cluster <- parallel::makeCluster(n.cores, type="FORK")
+    }
+
     doParallel::registerDoParallel(my.cluster)
 
     #exporting cluster variables
@@ -106,6 +112,7 @@ workflowPsiHP <- function(sequences = NULL,
   } else {
     #replaces dopar (parallel) by do (serial)
     `%dopar%` <- foreach::`%do%`
+     on.exit(`%dopar%` <- foreach::`%dopar%`)
   }
 
   #parallelized loop
@@ -384,9 +391,13 @@ workflowPsiHP <- function(sequences = NULL,
   }#end of parallelized loop
 
   #preparing output as dataframe
-  combinations <- data.frame(combinations)
+  combinations <- data.frame(combinations, stringsAsFactors = FALSE)
   combinations[, "psi"] <- psi.output
   colnames(combinations) <- c("A", "B", "psi")
+
+  #factor to character
+  combinations$A <- as.character(combinations$A)
+  combinations$B <- as.character(combinations$B)
 
 
   return(combinations)

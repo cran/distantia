@@ -99,7 +99,13 @@ leastCostMatrix <- function(distance.matrix = NULL,
     `%dopar%` <- foreach::`%dopar%`
     n.cores <- parallel::detectCores() - 1
     if(n.iterations < n.cores){n.cores <- n.iterations}
-    my.cluster <- parallel::makeCluster(n.cores, type="FORK")
+
+    if(.Platform$OS.type == "windows"){
+      my.cluster <- parallel::makeCluster(n.cores, type="PSOCK")
+    } else {
+      my.cluster <- parallel::makeCluster(n.cores, type="FORK")
+    }
+
     doParallel::registerDoParallel(my.cluster)
 
   #exporting cluster variables
@@ -112,6 +118,7 @@ leastCostMatrix <- function(distance.matrix = NULL,
   } else {
     #replaces dopar (parallel) by do (serial)
     `%dopar%` <- foreach::`%do%`
+    on.exit(`%dopar%` <- foreach::`%dopar%`)
     }
 
   #parallelized loop

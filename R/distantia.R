@@ -1,116 +1,343 @@
-#' @details Details
-"_PACKAGE"
-
-#' Pollen dataset.
+#' Dissimilarity Analysis of Time Series Lists
 #'
-#' A subset of the Grande Pile dataset (\url{https://doi.pangaea.de/10.1594/PANGAEA.739275}). It contains a depth (cm) and age columns (ky BP), and 40 pollen types.
+#' @description
 #'
+#' This function combines *dynamic time warping* or *lock-step comparison* with the *psi dissimilarity score* and *permutation methods* to assess dissimilarity between pairs time series or any other sort of data composed of events ordered across a relevant dimension.
 #'
-#' @docType data
-#' @keywords datasets
-#' @name pollenGP
-#' @usage data(sequenceA)
-#' @format Dataframe with 42 columns and 200 rows
-"pollenGP"
-
-
-#' Multivariate and irregular time series with pollen counts.
+#' **Dynamic Time Warping** (DTW) finds the optimal alignment between two time series by minimizing the cumulative distance between their samples. It applies dynamic programming to identify the least-cost path through a distance matrix between all pairs of samples. The resulting sum of distances along the least cost path is a metric of time series similarity. DTW disregards the exact timing of samples and focuses on their order and pattern similarity between time series, making it suitable for comparing both *regular and irregular time series of the same or different lengths*, such as phenological data from different latitudes or elevations, time series from various years or periods, and movement trajectories like migration paths. Additionally, `distantia()` implements constrained DTW via Sakoe-Chiba bands with the `bandwidth` argument, which defines a region around the distance matrix diagonal to restrict the spread of the least cost path.
 #'
-#' A dataframe with 9 columns representing pollen types (betula, pinus, corylus, empetrum, cypera, artemisia, rumex) and 49 rows representing increasing depths with pollen counts taken from the Abernethy dataset (Birks and Mathewes (1978).
+#' **Lock-step** (LS) sums pairwise distances between samples in *regular or irregular time series of the same length*, preferably captured at the same times. This method is an alternative to dynamic time warping when the goal is to assess the synchronicity of two time series.
 #'
+#' The **psi score** normalizes the cumulative sum of distances between two time series by the cumulative sum of distances between their consecutive samples to generate a comparable dissimilarity score. If for two time series \eqn{x} and \eqn{y} \eqn{D_xy} represents the cumulative sum of distances between them, either resulting from dynamic time warping or the lock-step method, and \eqn{S_xy} represents the cumulative sum of distances of their consecutive samples, then the psi score can be computed in two ways depending on the scenario:
 #'
-#' @docType data
-#' @keywords datasets
-#' @name sequenceA
-#' @usage data(sequenceA)
-#' @references Birks, H.H. and Mathewes, R.W. (1978) Studies in the vegetational history of Scotland. \emph{New Phytologist} \strong{80}, 455-484.
-#' @format Dataframe with 9 columns and 49 rows
-"sequenceA"
-
-#' Multivariate and irregular time series with pollen counts.
+#' **Equation 1:** \eqn{\psi = \frac{D_{xy} - S_{xy}}{S_{xy}}}
 #'
-#' A dataframe with 8 columns (the column \code{empetr} is missing with respect to \code{\link{sequenceA}}) representing pollen types (betula, pinus, corylus, cypera, artemisia, rumex) and 41 rows representing increasing depths with pollen counts taken from the Abernethy dataset (Birks and Mathewes (1978). Several NA values have been introduced in the dataset to demonstrate the data-handling capabilities of \code{\link{prepareSequences}}.
+#' **Equation 2:** \eqn{\psi = \frac{D_{xy} - S_{xy}}{S_{xy}} + 1}
 #'
+#' When $D_xy$ is computed via dynamic time warping **ignoring the distance matrix diagonals** (`diagonal = FALSE`), then *Equation 1* is used. On the other hand, if $D_xy$ results from the lock-step method (`lock_step = TRUE`), or from dynamic time warping considering diagonals (`diagonal = TRUE`), then *Equation 2* is used instead:
 #'
-#' @docType data
-#' @keywords datasets
-#' @name sequenceB
-#' @usage data(sequenceB)
-#' @references Birks, H.H. and Mathewes, R.W. (1978) Studies in the vegetational history of Scotland. \emph{New Phytologist} \strong{80}, 455-484.
-#' @format Dataframe with 9 columns and 41 rows
-"sequenceB"
-
-#' Dataframe with palaeoclimatic data.
+#' In both equations, a psi score of zero indicates maximum similarity.
 #'
-#' A dataframe containing 800 simulated samples of palaeoclimate data at 1 ky temporal resolution with the following columns:
+#' **Permutation methods** are provided here to help assess the robustness of observed psi scores by direct comparison with a null distribution of psi scores resulting from randomized versions of the compared time series. The fraction of null scores smaller than the observed score is returned as a *p_value* in the function output and interpreted as "the probability of finding a higher similarity (lower psi score) by chance".
 #'
+#'  In essence, restricted permutation is useful to answer the question "how robust is the similarity between two time series?"
+#'
+#' Four different permutation methods are available:
 #' \itemize{
-#'   \item \emph{age} in kiloyears before present (ky BP).
-#'   \item \emph{temperatureAverage} average annual temperature in Celsius degrees.
-#'   \item \emph{rainfallAverage} average annual precipitation in milimetres per day (mm/day).
-#'   \item \emph{temperatureWarmestMonth} average temperature of the warmest month, in Celsius degrees.
-#'   \item \emph{temperatureColdestMonth} average temperature of the coldest month, in Celsius degrees.
-#'   \item \emph{oxigenIsotope} delta O18, global ratio of stable isotopes in the sea floor, see \url{http://lorraine-lisiecki.com/stack.html} for further details.
+#'   \item **"restricted"**: Separates the data into blocks of contiguous rows, and re-shuffles data points randomly within these blocks, independently by row and column. Applied when the data is structured in blocks that should be preserved during permutations (e.g., "seasons", "years", "decades", etc) and the columns represent independent variables.
+#'   \item **"restricted_by_row"**: Separates the data into blocks of contiguous rows, and re-shuffles complete rows within these blocks. This method is suitable for cases where the data is organized into blocks as described above, but columns represent interdependent data (e.g., rows represent percentages or proportions), and maintaining the relationships between data within each row is important.
+#'   \item **"free"**: Randomly re-shuffles data points across the entire time series, independently by row and column. This method is useful for loosely structured time series where data independence is assumed. When the data exhibits a strong temporal structure, this approach may lead to an overestimation of the robustness of dissimilarity scores.
+#'   \item **"free_by_row"**: Randomly re-shuffles complete rows across the entire time series. This method is useful for loosely structured time series where dependency between columns is assumed (e.g., rows represent percentages or proportions). This method has the same drawbacks as the "free" method, when the data exhibits a strong temporal structure.
 #' }
-#' @docType data
-#' @keywords datasets
-#' @name climateLong
-#' @usage data(climateLong)
-#' @format dataframe with 6 columns and 800 rows.
-"climateLong"
-
-
-#' Dataframe with palaeoclimatic data.
 #'
-#' A dataframe containing 11 simulated samples of palaeoclimate data at 1 ky temporal resolution with the following columns:
+#' This function allows computing dissimilarity between pairs of time series using different combinations of arguments at once. For example, when the argument `distance` is set to `c("euclidean", "manhattan")`, the output data frame will show two dissimilarity scores for each pair of time series, one based on euclidean distances, and another based on manhattan distances. The same happens for most other parameters.
 #'
+#' This function supports a parallelization setup via [future::plan()], and progress bars provided by the package [progressr](https://CRAN.R-project.org/package=progressr). However, due to the high performance of the C++ backend, parallelization might only result in efficiency gains when running permutation tests with large number of iterations, or working with very long time series.
+#'
+#' @param tsl (required, time series list) list of zoo time series. Default: NULL
+#' @param distance (optional, character vector) name or abbreviation of the distance method. Valid values are in the columns "names" and "abbreviation" of the dataset [distances]. Default: "euclidean".
+#' @param diagonal (optional, logical vector). If TRUE, diagonals are included in the dynamic time warping computation. Default: TRUE
+#' @param bandwidth (optional, numeric) Proportion of space at each side of the cost matrix diagonal (aka *Sakoe-Chiba band*) defining a valid region for dynamic time warping, used to control the flexibility of the warping path. This method prevents degenerate alignments due to differences in magnitude between time series when the data is not properly scaled. If `1` (default), DTW is unconstrained. If `0`, DTW is fully constrained and the warping path follows the matrix diagonal. Recommended values may vary depending on the nature of the data. Ignored if `lock_step = TRUE`. Default: 1.
+#' @param lock_step (optional, logical vector) If TRUE, time series captured at the same times are compared sample wise (with no dynamic time warping). Requires time series in argument `tsl` to be fully aligned, or it will return an error. Default: FALSE.
+#' @param permutation (optional, character vector) permutation method, only relevant when `repetitions` is higher than zero. Valid values are: "restricted_by_row", "restricted", "free_by_row", and "free". Default: "restricted_by_row".
+#' @param block_size (optional, integer) Size of the row blocks for the restricted permutation test. Only relevant when permutation methods are "restricted" or "restricted_by_row" and `repetitions` is higher than zero. A block of size `n` indicates that a row can only be permuted within a block of `n` adjacent rows. If NULL, defaults to the rounded one tenth of the shortest time series in `tsl`. Default: NULL.
+#' @param repetitions (optional, integer vector) number of permutations to compute the p-value. If 0, p-values are not computed. Otherwise, the minimum is 2. The resolution of the p-values and the overall computation time depends on the number of permutations. Default: 0
+#' @param seed (optional, integer) initial random seed to use for replicability when computing p-values. Default: 1
+#'
+#' @return data frame with columns:
 #' \itemize{
-#'   \item \emph{temperatureAverage} average annual temperature in Celsius degrees.
-#'   \item \emph{rainfallAverage} average annual precipitation in milimetres per day (mm/day).
-#'   \item \emph{temperatureWarmestMonth} average temperature of the warmest month, in Celsius degrees.
-#'   \item \emph{temperatureColdestMonth} average temperature of the coldest month, in Celsius degrees.
-#'   \item \emph{oxigenIsotope} delta O18, global ratio of stable isotopes in the sea floor, see \url{http://lorraine-lisiecki.com/stack.html} for further details.
+#'   \item `x`: time series name.
+#'   \item `y`: time series name.
+#'   \item `distance`: name of the distance metric.
+#'   \item `diagonal`: value of the argument `diagonal`.
+#'   \item `lock_step`: value of the argument `lock_step`.
+#'   \item `repetitions` (only if `repetitions > 0`): value of the argument `repetitions`.
+#'   \item `permutation` (only if `repetitions > 0`): name of the permutation method used to compute p-values.
+#'   \item `seed` (only if `repetitions > 0`): random seed used to in the permutations.
+#'   \item `psi`: psi dissimilarity of the sequences `x` and `y`.
+#'   \item `null_mean` (only if `repetitions > 0`): mean of the null distribution of psi scores.
+#'   \item `null_sd` (only if `repetitions > 0`): standard deviation of the null distribution of psi values.
+#'   \item `p_value`  (only if `repetitions > 0`): proportion of scores smaller or equal than `psi` in the null distribution.
 #' }
-#' @docType data
-#' @keywords datasets
-#' @name climateShort
-#' @usage data(climateShort)
-#' @format dataframe with 5 columns and 11 rows.
-"climateShort"
-
-#' Dataframe with pollen counts for different MIS stages.
+#' @export
+#' @autoglobal
+#' @examples
 #'
-#' A dataframe with 427 rows representing pollen counts for 12 marine isotope stages and 6 pollen types
+#' #parallelization setup
+#' #not worth it for this data size
+#' # future::plan(
+#' #   strategy = future::multisession,
+#' #   workers = 2
+#' # )
 #'
-#' @docType data
-#' @keywords datasets
-#' @name sequencesMIS
-#' @usage data(sequencesMIS)
-#' @format dataframe with 7 columns and 427 rows.
-"sequencesMIS"
-
-#' Dataframe with palaeoclimatic data.
+#' #progress bar (does not work in R examples)
+#' # progressr::handlers(global = TRUE)
 #'
-#' A dataframe containing palaeoclimate data at 1 ky temporal resolution with the following columns:
 #'
-#' \itemize{
-#'   \item \emph{time} in kiloyears before present (ky BP).
-#'   \item \emph{sequenceId} numeric identifier of sequences of 200ky within the main sequence, useful to test some functions of the package, such as \code{\link{distancePairedSamples}}
-#'   \item \emph{temperatureAverage} average annual temperature in Celsius degrees.
-#'   \item \emph{rainfallAverage} average annual precipitation in milimetres per day (mm/day).
-#'   \item \emph{temperatureWarmestMonth} average temperature of the warmest month, in Celsius degrees.
-#'   \item \emph{temperatureColdestMonth} average temperature of the coldest month, in Celsius degrees.
+#' #load fagus_dynamics as tsl
+#' #global centering and scaling
+#' tsl <- tsl_initialize(
+#'   x = fagus_dynamics,
+#'   name_column = "name",
+#'   time_column = "time"
+#' ) |>
+#'   tsl_transform(
+#'     f = f_scale_global
+#'   )
+#'
+#' if(interactive()){
+#'   tsl_plot(
+#'     tsl = tsl,
+#'     guide_columns = 3
+#'     )
 #' }
-#' @author Blas M. Benito  <blasbenito@gmail.com>
-#' @docType data
-#' @keywords datasets
-#' @name climate
-#' @usage data(climate)
-#' @format dataframe with 6 columns and 800 rows.
-"climate"
+#'
+#' #dynamic time warping dissimilarity analysis
+#' #-------------------------------------------
+#' #permutation restricted by row to preserve dependency of ndvi on temperature and rainfall
+#' #block size is 3 months to permute within same season
+#' df_dtw <- distantia(
+#'   tsl = tsl,
+#'   distance = "euclidean",
+#'   permutation = "restricted_by_row",
+#'   block_size = 3, #months
+#'   repetitions = 10, #increase to 100 or more
+#'   seed = 1
+#' )
+#'
+#' #focus on the important details
+#' df_dtw[, c("x", "y", "psi", "p_value", "null_mean", "null_sd")]
+#' #higher psi values indicate higher dissimilarity
+#' #p-values indicate chance of finding a random permutation with a psi smaller than the observed
+#'
+#' #visualize dynamic time warping
+#' if(interactive()){
+#'
+#'   distantia_dtw_plot(
+#'     tsl = tsl[c("Spain", "Sweden")],
+#'     distance = "euclidean"
+#'   )
+#'
+#' }
+#'
+#' #recreating the null distribution
+#' #direct call to C++ function
+#' #use same args as distantia() call
+#' psi_null <- psi_null_dtw_cpp(
+#'   x = tsl[["Spain"]],
+#'   y = tsl[["Sweden"]],
+#'   distance = "euclidean",
+#'   repetitions = 10, #increase to 100 or more
+#'
+#'   permutation = "restricted_by_row",
+#'   block_size = 3,
+#'   seed = 1
+#' )
+#'
+#' #compare null mean with output of distantia()
+#' mean(psi_null)
+#' df_dtw$null_mean[3]
+#'
+#' @family distantia
+#' @importFrom doFuture "%dofuture%"
+distantia <- function(
+    tsl = NULL,
+    distance = "euclidean",
+    diagonal = TRUE,
+    bandwidth = 1,
+    lock_step = FALSE,
+    permutation = "restricted_by_row",
+    block_size = NULL,
+    repetitions = 0,
+    seed = 1
+){
 
-#' @import plyr parallel doParallel foreach iterators fields grDevices viridis data.table arrangements
-NULL
 
-#' @import utils
-utils::globalVariables(c("i", "..numeric.cols"))
+  #check input arguments
+  args <- utils_check_args_distantia(
+    tsl = tsl,
+    distance = distance,
+    diagonal = diagonal,
+    bandwidth = bandwidth,
+    lock_step = lock_step,
+    repetitions = repetitions,
+    permutation = permutation,
+    block_size = block_size,
+    seed = seed
+  )
+
+  tsl <- args$tsl
+  distance <- args$distance
+  diagonal <- args$diagonal
+  bandwidth <- args$bandwidth
+  lock_step <- args$lock_step
+  repetitions <- args$repetitions
+  permutation <- args$permutation
+  block_size <- args$block_size
+  seed <- args$seed
+
+  #lock-step check
+  if(any(lock_step == TRUE)){
+
+    #count rows in time series
+    row_counts <- tsl |>
+      tsl_nrow() |>
+      unlist() |>
+      unique()
+
+    if(length(row_counts) > 1){
+
+          message(
+            "distantia::distantia(): argument 'lock_step' is TRUE, but time series in 'tsl' do not have the same number of rows. Setting 'lock_step' to FALSE."
+          )
+
+      lock_step <- FALSE
+
+    }
+
+  }
+
+
+  #iterations data
+  if(repetitions == 0){
+
+    df <- utils_tsl_pairs(
+      tsl = tsl,
+      args_list = list(
+        distance = distance,
+        diagonal = diagonal,
+        bandwidth = bandwidth,
+        lock_step = lock_step
+      )
+    )
+
+    df$psi <- NA
+
+  } else {
+
+    df <- utils_tsl_pairs(
+      tsl = tsl,
+      args_list = list(
+        distance = distance,
+        diagonal = diagonal,
+        bandwidth = bandwidth,
+        lock_step = lock_step,
+        repetitions = repetitions,
+        permutation = permutation,
+        block_size = block_size,
+        seed = seed
+      )
+    )
+
+    df$psi <- NA
+    df$p_value <- NA
+    df$null_mean <- NA
+    df$null_sd <- NA
+
+  }
+
+  iterations <- seq_len(nrow(df))
+
+  p <- progressr::progressor(along = iterations)
+
+  #iterate over pairs of time series
+  df_distantia <- foreach::foreach(
+    i = iterations,
+    .combine = "rbind",
+    .errorhandling = "pass"
+  ) %dofuture% {
+
+    # p()
+
+    df.i <- df[i, ]
+
+    x <- tsl[[df.i$x]]
+    y <- tsl[[df.i$y]]
+
+    if(df.i$lock_step == TRUE){
+
+      df.i$psi <- psi_ls_cpp(
+        x = x,
+        y = y,
+        distance = df.i$distance
+      )
+
+      if(repetitions > 0){
+
+        psi_null <- psi_null_ls_cpp(
+          x = x,
+          y = y,
+          distance = df.i$distance,
+          repetitions = df.i$repetitions,
+          permutation = df.i$permutation,
+          block_size = df.i$block_size,
+          seed = df.i$seed
+        )
+
+        df.i$p_value <- sum(psi_null <= df.i$psi) / repetitions
+        df.i$null_mean <- mean(psi_null)
+        df.i$null_sd <- stats::sd(psi_null)
+
+      }
+
+    } else {
+
+      df.i$psi <- psi_dtw_cpp(
+        x = x,
+        y = y,
+        distance = df.i$distance,
+        diagonal = df.i$diagonal,
+        weighted = TRUE,
+        ignore_blocks = FALSE,
+        bandwidth = df.i$bandwidth
+      )
+
+      if(repetitions > 0){
+
+        psi_null <- psi_null_dtw_cpp(
+          x = x,
+          y = y,
+          distance = df.i$distance,
+          diagonal = df.i$diagonal,
+          weighted = TRUE,
+          ignore_blocks = FALSE,
+          bandwidth = df.i$bandwidth,
+          repetitions = df.i$repetitions,
+          permutation = df.i$permutation,
+          block_size = df.i$block_size,
+          seed = df.i$seed
+        )
+
+        df.i$p_value <- sum(psi_null <= df.i$psi) / repetitions
+        df.i$null_mean <- mean(psi_null)
+        df.i$null_sd <- stats::sd(psi_null)
+
+      }
+
+    }
+
+    return(df.i)
+
+  } |>
+    suppressWarnings()
+
+  df_distantia <- df_distantia[order(df_distantia$psi), ]
+
+  #remove dtw arguments if only lock-step was used
+  if(
+    "lock_step" %in% colnames(df_distantia) &&
+    sum(df_distantia[["lock_step"]]) == nrow(df_distantia)
+    ){
+    df_distantia$diagonal <- NULL
+    df_distantia$bandwidth <- NULL
+  }
+
+  #add type
+  attr(
+    x = df_distantia,
+    which = "type"
+  ) <- "distantia_df"
+
+  df_distantia
+
+}

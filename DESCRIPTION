@@ -2,7 +2,7 @@ Package: distantia
 Type: Package
 Title: Advanced Toolset for Efficient Time Series Dissimilarity
         Analysis
-Version: 2.0.0
+Version: 2.0.1
 Authors@R: 
     person(given = "Blas M.", 
           family = "Benito", , 
@@ -25,9 +25,9 @@ Config/testthat/edition: 3
 LinkingTo: Rcpp
 Language: en-US
 NeedsCompilation: yes
-Packaged: 2025-01-08 17:14:10 UTC; blas
+Packaged: 2025-01-23 09:36:21 UTC; blas
 Author: Blas M. Benito [aut, cre, cph]
     (<https://orcid.org/0000-0001-5105-7232>)
 Maintainer: Blas M. Benito <blasbenito@gmail.com>
 Repository: CRAN
-Date/Publication: 2025-01-08 23:50:02 UTC
+Date/Publication: 2025-01-23 10:40:07 UTC

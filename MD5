@@ -1,7 +1,7 @@
-7f7e354ec6d33bf858d3d74ebd7f83c0 *DESCRIPTION
+33f7b019914338391462303d6e4c0822 *DESCRIPTION
 a8330f38a0f7557dff1eb472988d0d83 *LICENSE
 8e5ee832e3f546babff2b204dc29dca3 *NAMESPACE
-15b27eb27213f9b9e3eea485bd36180c *NEWS.md
+993d6c7e442099723447b78f06fb27b8 *NEWS.md
 a4c2a33d6f05fdba3045679112d5354e *R/RcppExports.R
 e138ba6ac5c694979705990dd2b8aeba *R/color_continuous.R
 3c3370a3fb95c1d4387ab6041040fa7d *R/color_discrete.R
@@ -100,7 +100,7 @@ ad66b4a10c693a1bd7564a2b536e38ef *R/utils_time_keywords.R
 577f85ae52fc511c277b8b19c9beb543 *R/zoo_aggregate.R
 db7f966755a325730fa5c685d18f645c *R/zoo_names.R
 f524df1d460f3c05ee3b6c613ba2e0bd *R/zoo_permute.R
-eab958f0bc36ef1135bfb2380581382f *R/zoo_plot.R
+41aea44d42d05505058cc4bd92c3393f *R/zoo_plot.R
 bc70ca5921d77e339101461e418d09a7 *R/zoo_resample.R
 3db04a418e857ddc29fec2078b32aed8 *R/zoo_simulate.R
 8ba5a41fdb7340c6d789dd195316107c *R/zoo_smooth_exponential.R
@@ -109,7 +109,7 @@ d598120e658346619aa3de6116da0340 *R/zoo_time.R
 be6cf78cc9d5c49483b63dcdd0bc9647 *R/zoo_to_tsl.R
 b4340e77f21f1ad4c75477bc23f3810e *R/zoo_vector_to_matrix.R
 c462b55a7cc8b3232c5a96435d793185 *R/zzz.R
-c757937a691387b184555efa5980a425 *README.md
+76af64b9ce2e78557b18f591636c82ce *README.md
 aa5e5a2cbfaea3d9b6cdbe378ac48cee *build/partial.rdb
 e7b086eed71e62bba74f6e2ef42f5601 *data/albatross.rda
 f6a1dfde16de6d67185b9db015ea297b *data/cities_coordinates.rda
@@ -123,7 +123,7 @@ edad1dd28d8c0f6a05f5c1d9578f9e2e *data/fagus_coordinates.rda
 b211b5281978e14689037c8cc82de781 *data/fagus_dynamics.rda
 f43ddbf050479002dd3ce73598be79c9 *data/honeycomb_climate.rda
 14d841a59f754f651e52caa2c5279bef *data/honeycomb_polygons.rda
-4f861231b66ec3e474759816d071e171 *inst/CITATION
+844797d81bc5c7b834c8dcacd5517f18 *inst/CITATION
 386047bee89fc53aa9d4fa0a91527abe *inst/WORDLIST
 6c72bab6294c929086f702c2b8a62092 *man/albatross.Rd
 b74662c9394282baeea3f0afe55d717f *man/auto_distance_cpp.Rd
@@ -305,7 +305,7 @@ ffcddb7832c43b0679cffe0cee12ea78 *man/zoo_name_clean.Rd
 46d455b22fc81317a67f814ae0bbf6ad *man/zoo_name_get.Rd
 de2f00feb0d21655bf5817d24986d67b *man/zoo_name_set.Rd
 24ef64eee9eb5e637a72c2f07c3c51c8 *man/zoo_permute.Rd
-c8891df49e96682f809fb0c0b8027943 *man/zoo_plot.Rd
+c14edb817c337d78b27edc29475f3851 *man/zoo_plot.Rd
 0c85fe8ea6131610f2e33c741c57e8c7 *man/zoo_resample.Rd
 d8392190267e4da1edf00b3bc31bfce6 *man/zoo_simulate.Rd
 712289aeb23f8613a50d50e9cf3031a1 *man/zoo_smooth_exponential.Rd
@@ -367,7 +367,7 @@ dc67cf4ef0d21c1d245465bf556fd01b *tests/testthat/test-utils_clean_names.R
 7ebbbe71d6f28c84ccbde573c5b00719 *tests/testthat/test-utils_digits.R
 62d05ddcfafdd4a6b5dd088954f2064c *tests/testthat/test-utils_distantia_df_split.R
 ae00ca2fac3b72e99235b050a94f859f *tests/testthat/test-utils_is_time.R
-2e866ef40000a5f1e1c0236385654779 *tests/testthat/test-utils_new_time.R
+1f66fb5250192a30245fe66b80a0f03b *tests/testthat/test-utils_new_time.R
 2eec978ad89f29dd12dab730df2899dc *tests/testthat/test-utils_optimize_loess.R
 6a9212a849ba4a8fe3ddd7cd780731f6 *tests/testthat/test-utils_optimize_spline.R
 09382aeeb3d9d030a8aa16135ab9a1a3 *tests/testthat/test-utils_prepare_zoo_list.R
